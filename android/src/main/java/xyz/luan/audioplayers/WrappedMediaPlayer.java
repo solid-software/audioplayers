@@ -36,8 +36,9 @@ public class WrappedMediaPlayer extends Player implements MediaPlayer.OnPrepared
 
     @Override
     void setUrl(String url, boolean isLocal) {
-        if (!objectEquals(this.url, url)) {
+        if (!objectEquals(this.url, url) || this.released || this.prepared) {
             this.url = url;
+
             if (this.released) {
                 this.player = createPlayer();
                 this.released = false;
@@ -49,8 +50,9 @@ public class WrappedMediaPlayer extends Player implements MediaPlayer.OnPrepared
             this.setSource(url);
             this.player.setVolume((float) volume, (float) volume);
             this.player.setLooping(this.releaseMode == ReleaseMode.LOOP);
-            this.player.prepareAsync();
         }
+
+        this.player.prepareAsync();
     }
 
     @Override
@@ -187,6 +189,7 @@ public class WrappedMediaPlayer extends Player implements MediaPlayer.OnPrepared
     @Override
     public void onPrepared(final MediaPlayer mediaPlayer) {
         this.prepared = true;
+        ref.handlePrepared(this);
         ref.handleDuration(this);
         if (this.playing) {
             this.player.start();

@@ -156,6 +156,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (!mounted) return;
+      print(state);
       setState(() {
         _audioPlayerState = state;
       });

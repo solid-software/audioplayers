@@ -83,17 +83,17 @@ public class WrappedSoundPool extends Player implements SoundPool.OnLoadComplete
 
     @Override
     void setUrl(final String url, final boolean isLocal) {
-        if (this.url != null && this.url.equals(url)) {
-            return;
-        }
-        if (this.soundId != null) {
-            soundPool.unload(this.soundId);
-        } else {
-            soundPool.setOnLoadCompleteListener(this);
-        }
-        this.url = url;
-        this.loading = true;
+        if (this.url == null || !this.url.equals(url)) {
 
+            if (this.soundId != null) {
+                soundPool.unload(this.soundId);
+            } else {
+                soundPool.setOnLoadCompleteListener(this);
+            }
+            this.url = url;
+            this.loading = true;
+
+        }
         final WrappedSoundPool self = this;
 
         new Thread(new Runnable() {
@@ -175,12 +175,14 @@ public class WrappedSoundPool extends Player implements SoundPool.OnLoadComplete
                     this.looping ? -1 : 0,
                     1.0f);
         }
+        ref.handleIsPlaying(this);
     }
 
     @Override
     public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
         if (soundId == sampleId) {
             this.loading = false;
+            ref.handlePrepared(this);
             if (this.playing) {
                 start();
             }

@@ -40,6 +40,7 @@ enum AudioPlayerState {
   PLAYING,
   PAUSED,
   COMPLETED,
+  PREPARED,
 }
 
 /// This enum is meant to be used as a parameter of the [AudioPlayer]'s
@@ -66,26 +67,21 @@ enum PlayerMode {
 /// It holds methods to play, loop, pause, stop, seek the audio, and some useful
 /// hooks for handlers and callbacks.
 class AudioPlayer {
-  static final MethodChannel _channel =
-      const MethodChannel('xyz.luan/audioplayers')
-        ..setMethodCallHandler(platformCallHandler);
+  static final MethodChannel _channel = const MethodChannel('xyz.luan/audioplayers')
+    ..setMethodCallHandler(platformCallHandler);
 
   static final _uuid = Uuid();
 
   final StreamController<AudioPlayerState> _playerStateController =
       StreamController<AudioPlayerState>.broadcast();
 
-  final StreamController<Duration> _positionController =
-      StreamController<Duration>.broadcast();
+  final StreamController<Duration> _positionController = StreamController<Duration>.broadcast();
 
-  final StreamController<Duration> _durationController =
-      StreamController<Duration>.broadcast();
+  final StreamController<Duration> _durationController = StreamController<Duration>.broadcast();
 
-  final StreamController<void> _completionController =
-      StreamController<void>.broadcast();
+  final StreamController<void> _completionController = StreamController<void>.broadcast();
 
-  final StreamController<String> _errorController =
-      StreamController<String>.broadcast();
+  final StreamController<String> _errorController = StreamController<String>.broadcast();
 
   /// Reference [Map] with all the players created by the application.
   ///
@@ -105,11 +101,14 @@ class AudioPlayer {
     // ignore: deprecated_member_use_from_same_package
     audioPlayerStateChangeHandler?.call(state);
     _audioPlayerState = state;
+    if (_onPrepared != null && state == AudioPlayerState.PREPARED){
+      _onPrepared();
+      _onPrepared = null;
+    }
   }
 
   /// Stream of changes on player state.
-  Stream<AudioPlayerState> get onPlayerStateChanged =>
-      _playerStateController.stream;
+  Stream<AudioPlayerState> get onPlayerStateChanged => _playerStateController.stream;
 
   /// Stream of changes on audio position.
   ///
@@ -190,6 +189,14 @@ class AudioPlayer {
   /// to take effect only at the next time you play the audio.
   PlayerMode mode;
 
+  ///Callback for prepared state
+  ///
+  /// Needed to be able to run some external code on player prepared
+  /// Could be used for synchronization of the playback with some other processes
+  VoidCallback _onPrepared;
+
+  void onPrepared(VoidCallback onPreparedCallback) => _onPrepared = onPreparedCallback;
+
   /// Creates a new instance and assigns an unique id to it.
   AudioPlayer({this.mode = PlayerMode.MEDIA_PLAYER}) {
     this.mode ??= PlayerMode.MEDIA_PLAYER;
@@ -236,9 +243,6 @@ class AudioPlayer {
       'respectSilence': respectSilence,
     });
 
-    if (result == 1) {
-      state = AudioPlayerState.PLAYING;
-    }
 
     return result;
   }
@@ -369,20 +373,27 @@ class AudioPlayer {
         player.positionHandler?.call(newDuration);
         break;
       case 'audio.onComplete':
-        player.state = AudioPlayerState.COMPLETED;
-        player._completionController.add(null);
-        // ignore: deprecated_member_use_from_same_package
-        player.completionHandler?.call();
+        _handlePlayerStateChanged(player, AudioPlayerState.COMPLETED);
         break;
       case 'audio.onError':
-        player.state = AudioPlayerState.STOPPED;
-        player._errorController.add(value);
-        // ignore: deprecated_member_use_from_same_package
-        player.errorHandler?.call(value);
+        _handlePlayerStateChanged(player, AudioPlayerState.STOPPED);
+        break;
+      case 'audio.onPrepared':
+        _handlePlayerStateChanged(player, AudioPlayerState.PREPARED);
+        break;
+      case 'audio.onStartPlaying':
+        _handlePlayerStateChanged(player, AudioPlayerState.PLAYING);
         break;
       default:
         _log('Unknown method ${call.method} ');
     }
+  }
+
+  static void _handlePlayerStateChanged(AudioPlayer player, AudioPlayerState state) {
+    player.state = state;
+    player._completionController.add(null);
+    // ignore: deprecated_member_use_from_same_package
+    player.completionHandler?.call();
   }
 
   static void _log(String param) {

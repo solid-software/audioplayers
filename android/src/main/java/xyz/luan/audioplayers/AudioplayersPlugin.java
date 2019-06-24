@@ -125,6 +125,7 @@ public class AudioplayersPlugin implements MethodCallHandler {
     }
 
     public void handleIsPlaying(Player player) {
+        channel.invokeMethod("audio.onStartPlaying", buildArguments(player.getPlayerId(), player.getDuration()));
         startPositionUpdates();
     }
 
@@ -134,6 +135,10 @@ public class AudioplayersPlugin implements MethodCallHandler {
 
     public void handleCompletion(Player player) {
         channel.invokeMethod("audio.onComplete", buildArguments(player.getPlayerId(), true));
+    }
+
+    public void handlePrepared(Player player) {
+        channel.invokeMethod("audio.onPrepared", buildArguments(player.getPlayerId(), true));
     }
 
     private void startPositionUpdates() {
