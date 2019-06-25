@@ -38,7 +38,7 @@ public class WrappedSoundPool extends Player implements SoundPool.OnLoadComplete
     private boolean looping = false;
 
     private boolean loading = false;
-    
+
     WrappedSoundPool(AudioplayersPlugin ref, String playerId) {
         this.ref = ref;
         this.playerId = playerId;
@@ -90,8 +90,6 @@ public class WrappedSoundPool extends Player implements SoundPool.OnLoadComplete
 
     @Override
     void setUrl(final String url, final boolean isLocal) {
-        this.isLocal = isLocal;
-
         if (this.url == null || !this.url.equals(url)) {
 
             if (this.soundId != null) {
