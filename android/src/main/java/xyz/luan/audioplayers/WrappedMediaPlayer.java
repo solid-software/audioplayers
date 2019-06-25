@@ -19,6 +19,7 @@ public class WrappedMediaPlayer extends Player implements MediaPlayer.OnPrepared
     private boolean released = true;
     private boolean prepared = false;
     private boolean playing = false;
+    private boolean isLocal = false;
 
     private int shouldSeekTo = -1;
 
@@ -36,6 +37,7 @@ public class WrappedMediaPlayer extends Player implements MediaPlayer.OnPrepared
 
     @Override
     void setUrl(String url, boolean isLocal) {
+        this.isLocal = isLocal;
         if (!objectEquals(this.url, url) || this.released || this.prepared) {
             this.url = url;
 
@@ -123,8 +125,7 @@ public class WrappedMediaPlayer extends Player implements MediaPlayer.OnPrepared
                 this.setSource(url);
                 this.player.prepareAsync();
             } else if (this.prepared) {
-                this.player.start();
-                this.ref.handleIsPlaying(this);
+                startPlaying();
             }
         }
     }
@@ -189,16 +190,15 @@ public class WrappedMediaPlayer extends Player implements MediaPlayer.OnPrepared
     @Override
     public void onPrepared(final MediaPlayer mediaPlayer) {
         this.prepared = true;
-        ref.handlePrepared(this);
         ref.handleDuration(this);
         if (this.playing) {
-            this.player.start();
-            ref.handleIsPlaying(this);
+            startPlaying();
         }
         if (this.shouldSeekTo >= 0) {
             this.player.seekTo(this.shouldSeekTo);
             this.shouldSeekTo = -1;
         }
+        ref.handlePrepared(this);
     }
 
     @Override
@@ -212,6 +212,28 @@ public class WrappedMediaPlayer extends Player implements MediaPlayer.OnPrepared
     /**
      * Internal logic. Private methods
      */
+
+    private void startPlaying() {
+        if (isLocal) {
+            this.player.start();
+            ref.handleIsPlaying(this);
+            return;
+        }
+
+        double startsPlayingFrom = this.player.getCurrentPosition();
+        final Player wrappedMediaPlayer = this;
+        final double startPlayingBufferingPercent = ((startsPlayingFrom) / (double) this.player.getDuration()) * 100;
+        this.player.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() {
+            @Override
+            public void onBufferingUpdate(MediaPlayer mp, int percent) {
+                if (mp.isPlaying() && percent > startPlayingBufferingPercent) {
+                    ref.handleIsPlaying(wrappedMediaPlayer);
+                }
+            }
+
+        });
+        this.player.start();
+    }
 
     private MediaPlayer createPlayer() {
         MediaPlayer player = new MediaPlayer();

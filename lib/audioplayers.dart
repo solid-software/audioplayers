@@ -97,14 +97,14 @@ class AudioPlayer {
   AudioPlayerState get state => _audioPlayerState;
 
   set state(AudioPlayerState state) {
-    _playerStateController.add(state);
-    // ignore: deprecated_member_use_from_same_package
-    audioPlayerStateChangeHandler?.call(state);
-    _audioPlayerState = state;
     if (_onPrepared != null && state == AudioPlayerState.PREPARED){
       _onPrepared();
       _onPrepared = null;
     }
+    _playerStateController.add(state);
+    // ignore: deprecated_member_use_from_same_package
+    audioPlayerStateChangeHandler?.call(state);
+    _audioPlayerState = state;
   }
 
   /// Stream of changes on player state.
@@ -279,10 +279,6 @@ class AudioPlayer {
   /// [play], but without changing the parameters.
   Future<int> resume() async {
     final int result = await _invokeMethod('resume');
-
-    if (result == 1) {
-      state = AudioPlayerState.PLAYING;
-    }
 
     return result;
   }
