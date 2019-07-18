@@ -21,6 +21,7 @@ public class AudioplayersPlugin implements MethodCallHandler {
     private final Map<String, Player> mediaPlayers = new HashMap<>();
     private final Handler handler = new Handler();
     private Runnable positionUpdates;
+    private int frequency = 200;
 
     public static void registerWith(final Registrar registrar) {
         final MethodChannel channel = new MethodChannel(registrar.messenger(), "xyz.luan/audioplayers");
@@ -48,6 +49,7 @@ public class AudioplayersPlugin implements MethodCallHandler {
         final Player player = getPlayer(playerId, mode);
         switch (call.method) {
             case "play": {
+                frequency = call.argument("duration_update_frequency");
                 final String url = call.argument("url");
                 final double volume = call.argument("volume");
                 final Integer position = call.argument("position");
@@ -89,6 +91,7 @@ public class AudioplayersPlugin implements MethodCallHandler {
                 break;
             }
             case "setUrl": {
+                frequency = call.argument("duration_update_frequency");
                 final String url = call.argument("url");
                 final boolean isLocal = call.argument("isLocal");
                 player.setUrl(url, isLocal);
@@ -145,7 +148,7 @@ public class AudioplayersPlugin implements MethodCallHandler {
         if (positionUpdates != null) {
             return;
         }
-        positionUpdates = new UpdateCallback(mediaPlayers, channel, handler, this);
+        positionUpdates = new UpdateCallback(mediaPlayers, channel, handler, this, frequency);
         handler.post(positionUpdates);
     }
 
@@ -167,11 +170,13 @@ public class AudioplayersPlugin implements MethodCallHandler {
         private final WeakReference<MethodChannel> channel;
         private final WeakReference<Handler> handler;
         private final WeakReference<AudioplayersPlugin> audioplayersPlugin;
+        private final int frequency;
 
         private UpdateCallback(final Map<String, Player> mediaPlayers,
                                final MethodChannel channel,
                                final Handler handler,
-                               final AudioplayersPlugin audioplayersPlugin) {
+                               final AudioplayersPlugin audioplayersPlugin, int frequency) {
+            this.frequency = frequency;
             this.mediaPlayers = new WeakReference<>(mediaPlayers);
             this.channel = new WeakReference<>(channel);
             this.handler = new WeakReference<>(handler);
@@ -212,7 +217,7 @@ public class AudioplayersPlugin implements MethodCallHandler {
             if (nonePlaying) {
                 audioplayersPlugin.stopPositionUpdates();
             } else {
-                handler.postDelayed(this, 200);
+                handler.postDelayed(this, frequency);
             }
         }
     }

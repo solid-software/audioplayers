@@ -97,7 +97,7 @@ class AudioPlayer {
   AudioPlayerState get state => _audioPlayerState;
 
   set state(AudioPlayerState state) {
-    if (_onPrepared != null && state == AudioPlayerState.PREPARED){
+    if (_onPrepared != null && state == AudioPlayerState.PREPARED) {
       _onPrepared();
       _onPrepared = null;
     }
@@ -214,9 +214,7 @@ class AudioPlayer {
       ..['playerId'] = playerId
       ..['mode'] = mode.toString();
 
-    return _channel
-        .invokeMethod(method, withPlayerId)
-        .then((result) => (result as int));
+    return _channel.invokeMethod(method, withPlayerId).then((result) => (result as int));
   }
 
   /// Plays an audio.
@@ -230,6 +228,7 @@ class AudioPlayer {
     // position must be null by default to be compatible with radio streams
     Duration position,
     bool respectSilence = false,
+    int durationUpdateFrequency = 200,
   }) async {
     isLocal ??= false;
     volume ??= 1.0;
@@ -241,8 +240,8 @@ class AudioPlayer {
       'volume': volume,
       'position': position?.inMilliseconds,
       'respectSilence': respectSilence,
+      'duration_update_frequency': durationUpdateFrequency,
     });
-
 
     return result;
   }
@@ -326,8 +325,12 @@ class AudioPlayer {
   ///
   /// The resources will start being fetched or buffered as soon as you call
   /// this method.
-  Future<int> setUrl(String url, {bool isLocal: false}) {
-    return _invokeMethod('setUrl', {'url': url, 'isLocal': isLocal});
+  Future<int> setUrl(String url, {bool isLocal: false, int durationUpdateFrequency}) {
+    return _invokeMethod('setUrl', {
+      'url': url,
+      'isLocal': isLocal,
+      'duration_update_frequency': durationUpdateFrequency,
+    });
   }
 
   /// Get audio duration after setting url.
