@@ -325,7 +325,7 @@ class AudioPlayer {
   ///
   /// The resources will start being fetched or buffered as soon as you call
   /// this method.
-  Future<int> setUrl(String url, {bool isLocal: false, int durationUpdateFrequency}) {
+  Future<int> setUrl(String url, {bool isLocal: false, int durationUpdateFrequency = 200}) {
     return _invokeMethod('setUrl', {
       'url': url,
       'isLocal': isLocal,
